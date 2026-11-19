@@ -1,23 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+// The planner is a signed-in workspace: send visitors to the events dashboard,
+// whose gate forwards anyone signed out to /auth.
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "BroadcastOps Planner — Live Sports Production Scheduling" },
+      { name: "description", content: "Plan live sports broadcasts, assign crew and gear, and catch double-bookings." },
+      { property: "og:title", content: "BroadcastOps Planner — Live Sports Production Scheduling" },
+      { property: "og:description", content: "Plan live sports broadcasts, assign crew and gear, and catch double-bookings." },
+    ],
+  }),
+  beforeLoad: () => {
+    throw redirect({ to: "/events" });
+  },
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}

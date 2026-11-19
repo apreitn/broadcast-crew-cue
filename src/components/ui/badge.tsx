@@ -14,6 +14,15 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
         outline: "text-foreground",
+        live: "border-transparent bg-live text-live-foreground shadow-glow-live uppercase tracking-wider font-mono",
+        scheduled:
+          "border-scheduled/40 bg-scheduled/15 text-scheduled uppercase tracking-wider font-mono",
+        completed:
+          "border-transparent bg-completed text-completed-foreground uppercase tracking-wider font-mono",
+        conflict:
+          "border-transparent bg-conflict text-conflict-foreground shadow-glow-conflict uppercase tracking-wider font-mono",
+        ok: "border-ok/40 bg-ok/10 text-ok uppercase tracking-wider font-mono",
+        muted: "border-border bg-muted text-muted-foreground font-mono",
       },
     },
     defaultVariants: {
