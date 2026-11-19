@@ -2,7 +2,7 @@ import { format } from "date-fns";
 
 import type { EventConflicts } from "./conflicts";
 import {
-  ROLE_LABELS,
+  roleLabel,
   STATUS_LABELS,
   fmtDate,
   fmtTime,
@@ -48,7 +48,7 @@ export function buildCallSheetCsv(params: {
     row("CREW"),
     row("Name", "Role", "Phone", "Email", "Booking"),
     ...sortCrewByRole(crew).map((c) =>
-      row(c.name, ROLE_LABELS[c.role], c.phone, c.email, clash(conflicts.crew[c.id])),
+      row(c.name, roleLabel(c.role), c.phone, c.email, clash(conflicts.crew[c.id])),
     ),
     "",
     row("GEAR CHECKLIST"),

@@ -19,7 +19,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlanner, usePlannerMutation } from "@/hooks/use-planner";
-import { supabase } from "@/integrations/supabase/client";
+import { dbFrom } from "@/lib/db";
 import { buildCallSheetCsv, callSheetFilename, downloadCsv } from "@/lib/callsheet";
 import { conflictsForEvent } from "@/lib/conflicts";
 import {
@@ -74,10 +74,10 @@ function EventDetail() {
   const event = planner.eventsById.get(eventId);
 
   const setStatus = usePlannerMutation(
-    (status: EventStatus) => supabase.from("events").update({ status }).eq("id", eventId),
+    (status: EventStatus) => dbFrom("events").update({ status }).eq("id", eventId),
     { success: "Status updated" },
   );
-  const remove = usePlannerMutation(() => supabase.from("events").delete().eq("id", eventId), {
+  const remove = usePlannerMutation(() => dbFrom("events").delete().eq("id", eventId), {
     success: "Broadcast deleted",
   });
 

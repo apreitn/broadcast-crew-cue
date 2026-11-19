@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { exitDemoMode, isDemoMode } from "@/lib/demo";
 
 function LiveClock() {
   const [now, setNow] = useState(() => new Date());
@@ -32,7 +33,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    const demo = isDemoMode();
+    exitDemoMode();
+    if (!demo) await supabase.auth.signOut();
     navigate({ to: "/auth", search: {}, replace: true });
   }
 
@@ -69,7 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="ml-auto flex items-center gap-4">
             <LiveClock />
             <span className="hidden max-w-48 truncate text-xs text-muted-foreground lg:inline">
-              {user.email}
+              {isDemoMode() ? "Demo mode" : user.email}
             </span>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut />

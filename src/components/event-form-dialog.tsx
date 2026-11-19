@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { usePlannerMutation } from "@/hooks/use-planner";
-import { supabase } from "@/integrations/supabase/client";
+import { broadcastTimeError } from "@/lib/broadcast-times";
+import { dbFrom } from "@/lib/db";
 import {
   EVENT_STATUSES,
   SPORTS,
@@ -58,15 +59,21 @@ export function EventFormDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(() => initialState(event));
-  const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const timeError = broadcastTimeError(form);
+  const timeInvalid = Boolean(timeError);
+  const titleInvalid = submitted && !form.title.trim();
+
   const save = usePlannerMutation(
     async (payload: BroadcastEventInsert) => {
-      if (event) return supabase.from("events").update(payload).eq("id", event.id);
-      const res = await supabase.from("events").insert(payload).select("id").single();
-      if (!res.error && res.data) onSaved?.(res.data.id);
+      const row = payload as Record<string, unknown>;
+      if (event) return dbFrom("events").update(row).eq("id", event.id);
+      const res = await dbFrom("events").insert(row).select("id").single();
+      const created = res.data as { id?: string } | null;
+      if (!res.error && created?.id) onSaved?.(created.id);
       return res;
     },
     { success: event ? "Event updated" : "Event created" },
@@ -74,14 +81,11 @@ export function EventFormDialog({
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    if (!form.title.trim()) return setError("Give the broadcast a title.");
+    setSubmitted(true);
+    if (!form.title.trim() || timeError) return;
     const startAt = new Date(`${form.date}T${form.start}`);
-    let endAt = new Date(`${form.date}T${form.end}`);
-    // An off-air time earlier than on-air means the broadcast runs past midnight.
-    if (endAt <= startAt) endAt = addDays(endAt, 1);
+    const endAt = new Date(`${form.date}T${form.end}`);
     const callAt = form.call ? new Date(`${form.date}T${form.call}`) : null;
-    if (callAt && callAt > startAt) return setError("Crew call must be at or before on-air time.");
 
     save.mutate(
       {
@@ -105,7 +109,7 @@ export function EventFormDialog({
         setOpen(o);
         if (o) {
           setForm(initialState(event));
-          setError(null);
+          setSubmitted(false);
         }
       }}
     >
@@ -120,10 +124,17 @@ export function EventFormDialog({
             <Label htmlFor="ev-title">Title</Label>
             <Input
               id="ev-title"
+              aria-invalid={titleInvalid || undefined}
+              aria-describedby={titleInvalid ? "ev-title-error" : undefined}
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="Champions Cup: Riga FC vs. Valmiera"
             />
+            {titleInvalid && (
+              <p id="ev-title-error" role="alert" className="text-sm text-destructive">
+                Give the broadcast a title.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
@@ -166,24 +177,62 @@ export function EventFormDialog({
               placeholder="Skonto Stadium, Riga"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="col-span-2 grid gap-1.5 sm:col-span-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 gap-1.5">
               <Label htmlFor="ev-date">Date</Label>
-              <Input id="ev-date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} required />
+              <Input
+                id="ev-date"
+                type="date"
+                className="min-w-0 px-2 sm:px-3"
+                value={form.date}
+                onChange={(e) => set("date", e.target.value)}
+                required
+              />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid min-w-0 gap-1.5">
               <Label htmlFor="ev-call">Crew call</Label>
-              <Input id="ev-call" type="time" value={form.call} onChange={(e) => set("call", e.target.value)} />
+              <Input
+                id="ev-call"
+                type="time"
+                className="min-w-0 px-2 sm:px-3"
+                value={form.call}
+                onChange={(e) => set("call", e.target.value)}
+                aria-invalid={timeInvalid || undefined}
+                aria-describedby={timeInvalid ? "ev-time-error" : undefined}
+              />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid min-w-0 gap-1.5">
               <Label htmlFor="ev-start">On air</Label>
-              <Input id="ev-start" type="time" value={form.start} onChange={(e) => set("start", e.target.value)} required />
+              <Input
+                id="ev-start"
+                type="time"
+                className="min-w-0 px-2 sm:px-3"
+                value={form.start}
+                onChange={(e) => set("start", e.target.value)}
+                required
+                aria-invalid={timeInvalid || undefined}
+                aria-describedby={timeInvalid ? "ev-time-error" : undefined}
+              />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid min-w-0 gap-1.5">
               <Label htmlFor="ev-end">Off air</Label>
-              <Input id="ev-end" type="time" value={form.end} onChange={(e) => set("end", e.target.value)} required />
+              <Input
+                id="ev-end"
+                type="time"
+                className="min-w-0 px-2 sm:px-3"
+                value={form.end}
+                onChange={(e) => set("end", e.target.value)}
+                required
+                aria-invalid={timeInvalid || undefined}
+                aria-describedby={timeInvalid ? "ev-time-error" : undefined}
+              />
             </div>
           </div>
+          {timeInvalid && (
+            <p id="ev-time-error" role="alert" className="text-sm font-medium text-destructive">
+              {timeError}
+            </p>
+          )}
           <div className="grid gap-1.5">
             <Label htmlFor="ev-notes">Production notes</Label>
             <Textarea
@@ -194,7 +243,6 @@ export function EventFormDialog({
               placeholder="Feed routing, camera positions, graphics package…"
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Cancel

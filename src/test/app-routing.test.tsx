@@ -1,11 +1,11 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter, rootRouteId } from "@tanstack/react-router";
+import { createMemoryHistory, createRouter, rootRouteId } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
 
+import { enterDemoMode, exitDemoMode } from "@/lib/demo";
+import { plannerQuery } from "@/lib/planner";
 import { routeTree } from "@/routeTree.gen";
 
-// Match routes without running loaders or rendering: loaders may need a server or
-// network the test run lacks, and jsdom never loads the stylesheets React waits on.
 describe("App routing", () => {
   it("matches a page for / instead of falling back to not found", () => {
     const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
@@ -13,5 +13,24 @@ describe("App routing", () => {
     const matches = router.matchRoutes("/");
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
+  });
+  it("loads demo events without a Supabase session", async () => {
+    const queryClient = new QueryClient();
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ["/auth"] }),
+      context: { queryClient },
+    });
+
+    enterDemoMode();
+    try {
+      await router.navigate({ to: "/events" });
+
+      expect(router.state.location.pathname).toMatch(/^\/events\/?$/);
+      expect(queryClient.getQueryData(plannerQuery.queryKey)?.events.length).toBeGreaterThan(0);
+    } finally {
+      exitDemoMode();
+      queryClient.clear();
+    }
   });
 });

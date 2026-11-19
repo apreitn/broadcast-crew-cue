@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePlanner } from "@/hooks/use-planner";
 import { conflictsForEvent } from "@/lib/conflicts";
 import {
-  ROLE_LABELS,
+  roleLabel,
   STATUS_LABELS,
   fmtDate,
   fmtRange,
@@ -143,7 +143,7 @@ function PrintCallSheet() {
               )}
               {crew.map((c) => (
                 <tr key={c.id} className="print-avoid-break border-b align-top">
-                  <td className="py-2 pr-3 font-medium">{ROLE_LABELS[c.role]}</td>
+                  <td className="py-2 pr-3 font-medium">{roleLabel(c.role)}</td>
                   <td className="py-2 pr-3">
                     {c.name}
                     {conflicts.crew[c.id] && (

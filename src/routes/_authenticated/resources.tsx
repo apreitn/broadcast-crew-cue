@@ -18,16 +18,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePlanner, usePlannerMutation } from "@/hooks/use-planner";
-import { supabase } from "@/integrations/supabase/client";
+import { dbFrom } from "@/lib/db";
 import {
   CREW_ROLES,
-  ROLE_LABELS,
+  forgetCustomRole,
   fmtShortDate,
   fmtTime,
+  isCrewRoleEnumError,
+  isPresetRole,
   plannerQuery,
+  rememberCustomRole,
+  roleLabel,
   sortCrewByRole,
-  type CrewRole,
 } from "@/lib/planner";
+
+const CUSTOM_ROLE = "custom";
+const ROLE_PREFIX = "role:";
 
 export const Route = createFileRoute("/_authenticated/resources")({
   head: () => ({
@@ -107,32 +113,58 @@ function AddDialog({
 
 function ResourcesPage() {
   const planner = usePlanner();
-  const [crewForm, setCrewForm] = useState({ name: "", role: "camera_operator" as CrewRole, phone: "", email: "" });
+  const [crewForm, setCrewForm] = useState({
+    name: "",
+    role: ROLE_PREFIX + "camera_operator",
+    customRole: "",
+    phone: "",
+    email: "",
+  });
   const [kitForm, setKitForm] = useState({ name: "", category: "", serial: "" });
 
+  const roles = new Set([...CREW_ROLES, ...planner.crew.map((member) => member.role)]);
+  const role =
+    crewForm.role === CUSTOM_ROLE
+      ? crewForm.customRole.trim()
+      : crewForm.role.slice(ROLE_PREFIX.length);
+
   const addCrew = usePlannerMutation(
-    () =>
-      supabase.from("crew_members").insert({
+    async () => {
+      const row = {
         name: crewForm.name.trim(),
-        role: crewForm.role,
+        role,
         phone: crewForm.phone.trim() || null,
         email: crewForm.email.trim() || null,
-      }),
+      };
+      const attempt = await dbFrom("crew_members").insert(row).select("id").single();
+      if (!attempt.error || isPresetRole(role) || !isCrewRoleEnumError(attempt.error)) return attempt;
+      const fallback = await dbFrom("crew_members")
+        .insert({ ...row, role: "camera_operator" })
+        .select("id")
+        .single();
+      const created = fallback.data as { id?: string } | null;
+      if (!fallback.error && created?.id) rememberCustomRole(created.id, role);
+      return fallback;
+    },
     { success: "Crew member added" },
   );
   const addKit = usePlannerMutation(
     () =>
-      supabase.from("equipment_kits").insert({
+      dbFrom("equipment_kits").insert({
         name: kitForm.name.trim(),
         category: kitForm.category.trim() || "General",
         serial: kitForm.serial.trim() || null,
       }),
     { success: "Equipment kit added" },
   );
-  const removeCrew = usePlannerMutation((id: string) => supabase.from("crew_members").delete().eq("id", id), {
-    success: "Crew member removed",
-  });
-  const removeKit = usePlannerMutation((id: string) => supabase.from("equipment_kits").delete().eq("id", id), {
+  const removeCrew = usePlannerMutation(
+    (id: string) => {
+      forgetCustomRole(id);
+      return dbFrom("crew_members").delete().eq("id", id);
+    },
+    { success: "Crew member removed" },
+  );
+  const removeKit = usePlannerMutation((id: string) => dbFrom("equipment_kits").delete().eq("id", id), {
     success: "Equipment kit removed",
   });
 
@@ -149,10 +181,16 @@ function ResourcesPage() {
             title="Add crew member"
             pending={addCrew.isPending}
             onSubmit={(close) => {
-              if (!crewForm.name.trim()) return;
+              if (!crewForm.name.trim() || !role) return;
               addCrew.mutate(undefined, {
                 onSuccess: () => {
-                  setCrewForm({ name: "", role: "camera_operator", phone: "", email: "" });
+                  setCrewForm({
+                    name: "",
+                    role: ROLE_PREFIX + "camera_operator",
+                    customRole: "",
+                    phone: "",
+                    email: "",
+                  });
                   close();
                 },
               });
@@ -168,19 +206,30 @@ function ResourcesPage() {
               <Input id="crew-name" required value={crewForm.name} onChange={(e) => setCrewForm({ ...crewForm, name: e.target.value })} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Role</Label>
-              <Select value={crewForm.role} onValueChange={(v) => setCrewForm({ ...crewForm, role: v as CrewRole })}>
-                <SelectTrigger>
+              <Label htmlFor="crew-role">Role</Label>
+              <Select value={crewForm.role} onValueChange={(v) => setCrewForm({ ...crewForm, role: v })}>
+                <SelectTrigger id="crew-role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CREW_ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {ROLE_LABELS[r]}
+                  {Array.from(roles, (r) => (
+                    <SelectItem key={r} value={ROLE_PREFIX + r}>
+                      {roleLabel(r)}
                     </SelectItem>
                   ))}
+                  <SelectItem value={CUSTOM_ROLE}>Custom role…</SelectItem>
                 </SelectContent>
               </Select>
+              {crewForm.role === CUSTOM_ROLE && (
+                <Input
+                  id="crew-custom-role"
+                  aria-label="Custom role"
+                  required
+                  value={crewForm.customRole}
+                  onChange={(e) => setCrewForm({ ...crewForm, customRole: e.target.value })}
+                  placeholder="e.g. Replay Operator"
+                />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
@@ -210,7 +259,7 @@ function ResourcesPage() {
               {sortCrewByRole(planner.crew).map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-semibold">{c.name}</TableCell>
-                  <TableCell className="text-sm">{ROLE_LABELS[c.role]}</TableCell>
+                  <TableCell className="text-sm">{roleLabel(c.role)}</TableCell>
                   <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
                     <div className="timecode">{c.phone}</div>
                     <div>{c.email}</div>

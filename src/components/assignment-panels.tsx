@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlanner, usePlannerMutation } from "@/hooks/use-planner";
-import { supabase } from "@/integrations/supabase/client";
 import { conflictsForEvent, overlappingEventIds } from "@/lib/conflicts";
+import { dbFrom } from "@/lib/db";
 import {
   CREW_ROLES,
-  ROLE_LABELS,
   fmtRange,
   fmtShortDate,
+  roleLabel,
   sortCrewByRole,
   type BroadcastEvent,
 } from "@/lib/planner";
@@ -86,10 +86,10 @@ export function CrewPanel({ event }: { event: BroadcastEvent }) {
   const missingRoles = CREW_ROLES.filter((r) => !assigned.some((c) => c.role === r));
 
   const add = usePlannerMutation((crewId: string) =>
-    supabase.from("event_crew").insert({ event_id: event.id, crew_member_id: crewId }),
+    dbFrom("event_crew").insert({ event_id: event.id, crew_member_id: crewId }),
   );
   const remove = usePlannerMutation((crewId: string) =>
-    supabase.from("event_crew").delete().eq("event_id", event.id).eq("crew_member_id", crewId),
+    dbFrom("event_crew").delete().eq("event_id", event.id).eq("crew_member_id", crewId),
   );
 
   function assign(crewId: string) {
@@ -135,7 +135,7 @@ export function CrewPanel({ event }: { event: BroadcastEvent }) {
                   {clash && <ConflictBadge label="Double-booked" />}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {ROLE_LABELS[c.role]}
+                  {roleLabel(c.role)}
                   {c.phone && (
                     <span className="ml-2 inline-flex items-center gap-1">
                       <Phone className="size-3" />
@@ -160,7 +160,7 @@ export function CrewPanel({ event }: { event: BroadcastEvent }) {
       <div className="space-y-2 border-t bg-panel-raised/50 px-4 py-3">
         {missingRoles.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            Unfilled: {missingRoles.map((r) => ROLE_LABELS[r]).join(", ")}
+            Unfilled: {missingRoles.map((r) => roleLabel(r)).join(", ")}
           </p>
         )}
         <Select key={pickerKey} onValueChange={assign} disabled={available.length === 0}>
@@ -177,7 +177,7 @@ export function CrewPanel({ event }: { event: BroadcastEvent }) {
                 <SelectItem key={c.id} value={c.id}>
                   <span className="flex flex-col">
                     <span>
-                      {c.name} <span className="text-muted-foreground">· {ROLE_LABELS[c.role]}</span>
+                      {c.name} <span className="text-muted-foreground">· {roleLabel(c.role)}</span>
                     </span>
                     {clash && <span className="text-xs text-conflict">⚠ Booked on {clash}</span>}
                   </span>
@@ -206,11 +206,11 @@ export function GearPanel({ event }: { event: BroadcastEvent }) {
   const packed = links.filter((l) => l.link.packed).length;
 
   const add = usePlannerMutation((kitId: string) =>
-    supabase.from("event_gear").insert({ event_id: event.id, kit_id: kitId }),
+    dbFrom("event_gear").insert({ event_id: event.id, kit_id: kitId }),
   );
-  const remove = usePlannerMutation((id: string) => supabase.from("event_gear").delete().eq("id", id));
+  const remove = usePlannerMutation((id: string) => dbFrom("event_gear").delete().eq("id", id));
   const togglePacked = usePlannerMutation((v: { id: string; packed: boolean }) =>
-    supabase.from("event_gear").update({ packed: v.packed }).eq("id", v.id),
+    dbFrom("event_gear").update({ packed: v.packed }).eq("id", v.id),
   );
 
   function assign(kitId: string) {
