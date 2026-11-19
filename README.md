@@ -1,38 +1,47 @@
-# Broadcast Crew Cue
+# BroadcastOps Planner
 
-Build an internal web application for a live sports broadcast production team called "BroadcastOps Planner".
+An internal resource, crew, and gear scheduling prototype built for live sports broadcast production teams. Designed to replace manual spreadsheets, prevent double-booking conflicts, and generate instant printable call sheets.
 
-Core features:
+- Live Demo: https://broadcast-crew-cue.lovable.app/events (Click "Enter Demo Mode (No Login Required)" on the login screen to explore immediately)
 
-Events Dashboard: A clean list/calendar view of upcoming live sports broadcasts (e.g., Football Match, Basketball League, Hockey Finals) with date, start/end time, venue, and status (Scheduled, Live, Completed).
+---
 
-Crew & Gear Assignment: Inside each event, allow assigning crew members (Director, Camera Operator, Sound Engineer, Graphics Operator) and equipment kits (4K Camera Rig A, Drone Unit, Audio Mixer, LiveU Backpack).
+## Key Features
 
-Conflict Detection (Crucial): Automatically warn with a red alert badge if a crew member or equipment kit is double-booked for overlapping event times.
+- Broadcast Schedule Dashboard: Overview of live, scheduled, and completed sports broadcasts with both List and Calendar views.
+- Crew & Gear Assignment: Assign directors, camera operators, sound engineers, and equipment kits to specific production shifts.
+- Automated Conflict Detection: Real-time detection of double-booked crew members or equipment across overlapping broadcast times with alert badges.
+- One-Click Call Sheet Export: Export event schedules, crew contacts, and gear checklists to CSV or Print-ready PDF.
 
-Schedule Export: A button to export the selected event's full call sheet (schedule, assigned crew, gear checklist) to a clean CSV file or printable PDF view.
+---
 
-Design & UX: Modern dark-mode-friendly broadcast control room aesthetic (clean slate/gray tones, high-contrast status badges, intuitive table and card layout). Pre-populate with 3 realistic sample sports events, 6 crew members, and 6 equipment items so the app works immediately.
+## Tech Stack & AI-Assisted Workflow
 
-This project was built with [Lovable](https://lovable.dev).
+- Frontend: React, TypeScript, Tailwind CSS, Shadcn UI
+- Backend & Auth: Supabase (Lovable Cloud)
+- Workflow: Rapid UI and state prototyping in Lovable, followed by manual QA auditing, bug fixing, and regression testing in Codex (11/11 automated tests passing).
 
-**Live app**: https://broadcast-crew-cue.lovable.app
+---
 
-## Build with Lovable
+## Engineering Review & QA Fixes
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/1164b260-0762-4ba7-8215-b3058849b4eb).
+As part of my workflow, I treated the AI-generated output as an untrusted draft and ran manual QA & security checks before deployment. Here are the real issues caught, fixed, and verified:
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+1. Missing Chronological Time Validation
+- Issue: The initial AI-generated "New broadcast" form allowed saving invalid time ranges (e.g., Off air earlier than On air).
+- Fix: Implemented strict chronological validation (Crew call <= On air < Off air) with inline error messages blocking invalid submissions.
 
-## Development
+2. Broken OAuth Provider & Auth Friction
+- Issue: AI scaffolded a non-functional "Continue with Google" button without OAuth credentials configured in the backend.
+- Fix: Removed the broken OAuth button and implemented a one-click Demo Mode so stakeholders can explore /events immediately without registration.
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+3. Modal Input Layout Overlap
+- Issue: Four date/time inputs squeezed into a single flex row caused native picker icons to overlap on smaller screens.
+- Fix: Refactored the form inputs into a responsive 2x2 grid layout.
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+4. Hardcoded Crew Roles
+- Issue: Crew roles were restricted to 4 static preset options.
+- Fix: Added support for custom role names (e.g., Replay Operator, Producer) alongside preset roles.
+
+5. Database Access Rules (RLS) Audit
+- Note: Audited permissive Row-Level Security policies flagged during pre-publish security review ("Some access rules let everyone through"). Documented and scoped for isolated demo usage, with role-based access control (RBAC) planned for production hardening.
