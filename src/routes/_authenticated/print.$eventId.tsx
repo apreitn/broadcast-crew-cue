@@ -152,7 +152,7 @@ function PrintCallSheet() {
                       </p>
                     )}
                   </td>
-                  <td className="timecode py-2 pr-3">{c.phone ?? "—"}</td>
+                  <td className="timecode whitespace-nowrap py-2 pr-3">{c.phone ?? "—"}</td>
                   <td className="py-2">{c.email ?? "—"}</td>
                 </tr>
               ))}
@@ -195,7 +195,7 @@ function PrintCallSheet() {
                     )}
                   </td>
                   <td className="py-2 pr-3">{kit.category}</td>
-                  <td className="timecode py-2">{kit.serial ?? "—"}</td>
+                  <td className="timecode whitespace-nowrap py-2">{kit.serial ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

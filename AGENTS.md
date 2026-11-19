@@ -28,3 +28,10 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- All planner data (events, crew, gear, assignments) loads as one `plannerQuery` and conflicts are derived client-side via `buildConflictIndex` in `src/lib/conflicts.ts` — the dataset is small and conflict checks need every booking at once.
+- Double-booking = same crew member or kit on two events whose on-air windows (start_at→end_at) overlap; back-to-back is not a conflict. Assignments warn, never block. Covered by `src/lib/conflicts.test.ts`.
+- Every signed-in user is a team member with full read/write; app pages live under `src/routes/_authenticated/` (client-only gate). Add roles via a separate `user_roles` table if access ever needs splitting.
+- Colors are semantic tokens in `src/styles.css` (status: live/scheduled/completed, conflict, ok); the app is dark by default and `.print-sheet` swaps to paper tokens for the printable call sheet.

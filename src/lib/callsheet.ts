@@ -65,6 +65,7 @@ export function callSheetFilename(event: BroadcastEvent) {
   const slug = event.title
     .toLowerCase()
     .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
   return `callsheet-${format(new Date(event.start_at), "yyyy-MM-dd")}-${slug}.csv`;

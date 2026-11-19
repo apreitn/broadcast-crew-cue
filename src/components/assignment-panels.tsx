@@ -24,9 +24,9 @@ type Planner = ReturnType<typeof usePlanner>;
 
 function ClashList({ eventIds, planner }: { eventIds: string[]; planner: Planner }) {
   return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-conflict">
-      <AlertTriangle className="size-3" />
-      Also booked on
+    <p className="mt-1 text-xs text-conflict">
+      <AlertTriangle className="mr-1 inline size-3 align-[-2px]" />
+      Also booked on{" "}
       {eventIds.map((id, i) => {
         const other = planner.eventsById.get(id);
         if (!other) return null;
@@ -164,11 +164,9 @@ export function CrewPanel({ event }: { event: BroadcastEvent }) {
           </p>
         )}
         <Select key={pickerKey} onValueChange={assign} disabled={available.length === 0}>
-          <SelectTrigger aria-label="Assign crew member">
-            <span className="flex items-center gap-2 text-muted-foreground">
-              <UserPlus className="size-4" />
-              <SelectValue placeholder={available.length ? "Assign crew member…" : "All crew assigned"} />
-            </span>
+          <SelectTrigger aria-label="Assign crew member" className="gap-2 [&>span]:flex-1 [&>span]:text-left">
+            <UserPlus className="size-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder={available.length ? "Assign crew member…" : "All crew assigned"} />
           </SelectTrigger>
           <SelectContent>
             {available.map((c) => {
@@ -266,11 +264,9 @@ export function GearPanel({ event }: { event: BroadcastEvent }) {
       </ul>
       <div className="border-t bg-panel-raised/50 px-4 py-3">
         <Select key={pickerKey} onValueChange={assign} disabled={available.length === 0}>
-          <SelectTrigger aria-label="Add equipment kit">
-            <span className="flex items-center gap-2 text-muted-foreground">
-              <Package className="size-4" />
-              <SelectValue placeholder={available.length ? "Add equipment kit…" : "All kits on this job"} />
-            </span>
+          <SelectTrigger aria-label="Add equipment kit" className="gap-2 [&>span]:flex-1 [&>span]:text-left">
+            <Package className="size-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder={available.length ? "Add equipment kit…" : "All kits on this job"} />
           </SelectTrigger>
           <SelectContent>
             {available.map((k) => {
